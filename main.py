@@ -16,36 +16,62 @@ class Interface(cmd.Cmd):
         self.joueur_actuel = joueurs[0]
         self.preparations()
 
-    def gameOver(self, vainqueur):
-        print("Fin de partie, %s a perdu" % vainqueur.nom)
+    def default(self, line: str):
+        print("commande non reconnue")
+        self.do_help("")
+
+    def gameOver(self, perdant):
+        print("Fin de partie, %s a perdu" % perdant.nom)
 
     def changeJoueur(self):
         if self.joueur_actuel == self.joueurs[0]:
             self.joueur_actuel = self.joueurs[1]
         elif self.joueur_actuel == self.joueurs[1]:
             self.joueur_actuel = self.joueurs[0]
-        print("%s à vous" % self.joueur_actuel.nom)
+        s = self.joueur_actuel.nom + " a vous: "
+        self.prompt = s
 
     def preparations(self):
-        print(self.joueur_actuel.nom)
-        self.prompt = "j1\nplacez vos bateau:"
+        s = self.joueur_actuel.nom + "\nplacez vos bateau: "
+        self.prompt = s
         if (self.joueurs[1].nbr_bateau == 0):
             print("préparations terminée, joueur1 vous commencez")
+            self.prompt = "j1 a vous"
 
     def do_affiche(self, line):
         g.affiche()
 
+    def help_affiche(self):
+        print("affiche la grille")
+
     def do_place(self, line):
         l = line.split(" ")
-        self.joueur_actuel.place(l[0], l[1])
-        self.joueur_actuel.nbr_bateau -= 1  # verifier que le placement est bon
-        if self.joueur_actuel.nbr_bateau == 0:
-            self.changeJoueur()
-            self.preparations()
+        if len(l) != 2:
+            print("veuillez entrer deux coordonnées")
+            return
+
+        try:
+            self.joueur_actuel.place(l[0], l[1])
+        except Exception as message:
+            print("erreur ligne 55")
+            print("details de l'erreur:", message)
+        else:
+            self.joueur_actuel.nbr_bateau -= 1  # verifier que le placement est bon
+            if self.joueur_actuel.nbr_bateau == 0:
+                self.changeJoueur()
+                self.preparations()
 
     def do_tire(self, line):
-        self.joueur_actuel.tire(line)
-        self.changeJoueur()
+        if self.joueur_actuel.nbr_bateau != 0:
+            print("il vous reste des bateaux à placer")
+            return
+        try:
+            self.joueur_actuel.tire(line)
+        except Exception as message:
+            print("erreur ligne 65")
+            print("details de l'erreur:", message)
+        else:
+            self.changeJoueur()
 
     def do_exit(self, line):
         self.do_EOF()
@@ -67,15 +93,10 @@ class Joueur():
     def place(self, coordA, coordB):
         for o in self.liste_bateau:
             print(o.liste_parties)
-        try:
-            self.liste_bateau.append(Bateau(coordA, coordB, self))
-        except InvalidCoordError:
-            print("erreur")
-        else:
-            print(self.liste_bateau)
+        self.liste_bateau.append(Bateau(coordA, coordB, self))
 
     def tire(self, case):
-        if isinstance(g.cases[case][((self.numero + 1) % 2)],
+        if isinstance(g.cases[case][((self.numero) % 2)],
                       PartieBateau):  # a adapter quand il y aura plus que 2 joueurs
             if g.cases[case][(self.numero % 2)].bateau.proprietaire != self:
                 g.cases[case][(self.numero % 2)].etat = "touché"
@@ -83,7 +104,7 @@ class Joueur():
             else:
                 print("c'est ton bateau ça, gamin")
             g.cases[case][(self.numero % 2)].bateau.check()
-        elif isinstance(g.cases[case][((self.numero + 1) % 2)], Eau):
+        elif isinstance(g.cases[case][((self.numero ) % 2)], Eau):
             g.cases[case][(self.numero % 2)].etat = "touché"
             print("plouf!")
 
@@ -171,7 +192,6 @@ class Bateau():
                 if (g.cases[coord][((
                                             self.proprietaire.numero + 1) % 2)].type != "eau"):  # si la case ou on veux placer un bateau n'est pas vide
                     self.liste_parties = []
-                    print("vous ne pouvez pas placer un bateau sur un autre bateau")
                     raise InvalidCoordError("vous ne pouvez pas placer un bateau sur un autre bateau")
                 self.liste_parties.append(coord)  # la liste des parties du bateau se complete
 
@@ -192,7 +212,6 @@ class Bateau():
                         x in ordP1MinusOne for x in p2) or any(x in p1 for x in p2) or any(
                     x in absP1PlusOne for x in p2) or any(x in absP1MinusOne for x in p2)):
                     self.liste_parties = []
-                    print("Le bateau est à coté d'un autre1")
                     raise InvalidCoordError("Le bateau est à coté d'un autre")
             print(self.liste_parties)
 
@@ -207,7 +226,6 @@ class Bateau():
                     coord = chr(ord(self.coordA[0]) - i) + self.coordA[1]
                 if g.cases[coord][((self.proprietaire.numero + 1) % 2)].type != "Eau":
                     self.liste_parties = []
-                    print("vous ne pouvez pas placer un bateau sur un autre bateau2")
                     raise InvalidCoordError("vous ne pouvez pas placer un bateau sur un autre bateau")
                 self.liste_parties.append(coord)
 
@@ -227,7 +245,6 @@ class Bateau():
                         x in ordP1MinusOne for x in p2) or any(x in p1 for x in p2) or any(
                     x in absP1PlusOne for x in p2) or any(x in absP1MinusOne for x in p2)):
                     self.liste_parties = []
-                    print("Le bateau est à coté d'un autre2")
                     raise InvalidCoordError("Le bateau est à coté d'un autre")
             print(self.liste_parties)
 
