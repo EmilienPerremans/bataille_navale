@@ -20,23 +20,40 @@ class Interface(cmd.Cmd):
         print("commande non reconnue")
         self.do_help("")
 
+    def emptyline(self):
+        print("veuillez entrer quelque chose")
+        self.do_help("")
+
     def gameOver(self, perdant):
         print("Fin de partie, %s a perdu" % perdant.nom)
 
     def changeJoueur(self):
-        if self.joueur_actuel == self.joueurs[0]:
-            self.joueur_actuel = self.joueurs[1]
-        elif self.joueur_actuel == self.joueurs[1]:
-            self.joueur_actuel = self.joueurs[0]
-        s = self.joueur_actuel.nom + " a vous: "
-        self.prompt = s
+        if self.joueurs[1].nom == "ordi":
+            self.joueurs[1].tire()
+            print("l'ordi à tiré")
+        else:
+            if self.joueur_actuel == self.joueurs[0]:
+                self.joueur_actuel = self.joueurs[1]
+            elif self.joueur_actuel == self.joueurs[1]:
+                self.joueur_actuel = self.joueurs[0]
+            s = self.joueur_actuel.nom + " a vous: "
+            self.prompt = s
 
     def preparations(self):
-        s = self.joueur_actuel.nom + "\nplacez vos bateau: "
-        self.prompt = s
-        if (self.joueurs[1].nbr_bateau == 0):
-            print("préparations terminée, joueur1 vous commencez")
-            self.prompt = "j1 a vous"
+        if self.joueurs[1].nom == "ordi":
+            s = self.joueur_actuel.nom + "\nplacez vos bateau: "
+            self.prompt = s
+            if (self.joueurs[0].nbr_bateau == 0):
+                self.joueurs[1].place()
+                print("L'ordi place ses bateaux...")
+                print("préparations terminée, joueur1 vous commencez")
+                self.prompt = "j1 a vous: "
+        else:
+            s = self.joueur_actuel.nom + "\nplacez vos bateau: "
+            self.prompt = s
+            if (self.joueurs[1].nbr_bateau == 0):
+                print("préparations terminée, joueur1 vous commencez")
+                self.prompt = "j1 a vous: "
 
     def do_affiche(self, line):
         g.affiche()
@@ -58,7 +75,8 @@ class Interface(cmd.Cmd):
         else:
             self.joueur_actuel.nbr_bateau -= 1  # verifier que le placement est bon
             if self.joueur_actuel.nbr_bateau == 0:
-                self.changeJoueur()
+                if self.joueurs[1].nom != "ordi":
+                    self.changeJoueur()
                 self.preparations()
 
     def do_tire(self, line):
@@ -104,7 +122,35 @@ class Joueur():
             else:
                 print("c'est ton bateau ça, gamin")
             g.cases[case][(self.numero % 2)].bateau.check()
-        elif isinstance(g.cases[case][((self.numero ) % 2)], Eau):
+        elif isinstance(g.cases[case][((self.numero) % 2)], Eau):
+            g.cases[case][(self.numero % 2)].etat = "touché"
+            print("plouf!")
+
+
+class Ordinateur(Joueur):
+    """Joueur entièrement geré par l'ordinateur"""
+
+    def __init__(self, nom, numero):
+        super().__init__(nom, numero)
+
+    def place(self):
+        coordA = "A1"  # aléatoiriser
+        coordB = "A2"
+        for o in self.liste_bateau:
+            print(o.liste_parties)
+        self.liste_bateau.append(Bateau(coordA, coordB, self))
+
+    def tire(self):
+        case = "A1"  # randomiser
+        if isinstance(g.cases[case][((self.numero) % 2)],
+                      PartieBateau):  # a adapter quand il y aura plus que 2 joueurs
+            if g.cases[case][(self.numero % 2)].bateau.proprietaire != self:
+                g.cases[case][(self.numero % 2)].etat = "touché"
+                print("touché!")
+            else:
+                print("c'est ton bateau ça, gamin")
+            g.cases[case][(self.numero % 2)].bateau.check()
+        elif isinstance(g.cases[case][((self.numero) % 2)], Eau):
             g.cases[case][(self.numero % 2)].etat = "touché"
             print("plouf!")
 
@@ -314,6 +360,7 @@ class Bateau():
             if not any(x != "coulé" for x in etatBateaux):
                 inter.gameOver(self.proprietaire)
 
+
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
     import argparse
@@ -324,9 +371,14 @@ if __name__ == '__main__':
     l = parser.parse_args()
     g = Grille(len(l.nom))
     j1 = Joueur(l.nom[0], 1)
-    en = Joueur(l.nom[1], 2)
+    if (l.nom[1]) == "ordi":
+        ordi = Ordinateur("ordi", 2)
+        inter = Interface([j1, ordi])
+    else:
+        en = Joueur(l.nom[1], 2)
+        inter = Interface([j1, en])
     g.affiche()
     print("\n")
-    inter = Interface([j1, en])
+
     inter.cmdloop()
 # See PyCharm help at https://www.jetbrains.com/help/pycharm/
