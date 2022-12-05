@@ -127,9 +127,64 @@ class Grille:
 
     def affiche(self):
         for e, i in enumerate(self.cases.items()):
-            if e % 10 == 0:
-                print("\n")
-            print(i, end="")
+            separrateur = "  "
+            affichA = []
+            affichB = []
+            affichC = []
+            affichD = []
+            affichE = []
+            affichF = []
+            affichG = []
+            affichH = []
+            affichI = []
+            affichJ = []
+            self.toutesLesCase = []
+
+            for e, i in enumerate(self.cases.items()):
+                if i[0][0] == 'A':
+                    affichA.append(i[0])
+                    self.toutesLesCase.append(affichA)
+                elif i[0][0] == 'B':
+                    affichB.append(i[0])
+                    self.toutesLesCase.append(affichB)
+                elif i[0][0] == 'C':
+                    affichC.append(i[0])
+                    self.toutesLesCase.append(affichC)
+                elif i[0][0] == 'D':
+                    affichD.append(i[0])
+                    self.toutesLesCase.append(affichD)
+                elif i[0][0] == 'E':
+                    affichE.append(i[0])
+                    self.toutesLesCase.append(affichE)
+                elif i[0][0] == 'F':
+                    affichF.append(i[0])
+                    self.toutesLesCase.append(affichF)
+                elif i[0][0] == 'G':
+                    affichG.append(i[0])
+                    self.toutesLesCase.append(affichG)
+                elif i[0][0] == 'H':
+                    affichH.append(i[0])
+                    self.toutesLesCase.append(affichH)
+                elif i[0][0] == 'I':
+                    affichI.append(i[0])
+                    self.toutesLesCase.append(affichI)
+                elif i[0][0] == 'J':
+                    affichJ.append(i[0])
+                    self.toutesLesCase.append(affichJ)
+            # Sert à l'affichage en interface graphique
+        fenetre = Tk()
+        canvas = Canvas(fenetre, width=390, height=220, background='yellow')
+        txtA = canvas.create_text(200, 20, text=separrateur.join(affichA), font="TkFixedFont", fill="blue")
+        txtB = canvas.create_text(200, 40, text=separrateur.join(affichB), font="TkFixedFont", fill="blue")
+        txtC = canvas.create_text(200, 60, text=separrateur.join(affichC), font="TkFixedFont", fill="blue")
+        txtD = canvas.create_text(200, 80, text=separrateur.join(affichD), font="TkFixedFont", fill="blue")
+        txtE = canvas.create_text(200, 100, text=separrateur.join(affichE), font="TkFixedFont", fill="blue")
+        txtF = canvas.create_text(200, 120, text=separrateur.join(affichF), font="TkFixedFont", fill="blue")
+        txtG = canvas.create_text(200, 140, text=separrateur.join(affichG), font="TkFixedFont", fill="blue")
+        txtH = canvas.create_text(200, 160, text=separrateur.join(affichH), font="TkFixedFont", fill="blue")
+        txtI = canvas.create_text(200, 180, text=separrateur.join(affichI), font="TkFixedFont", fill="blue")
+        txtJ = canvas.create_text(200, 200, text=separrateur.join(affichJ), font="TkFixedFont", fill="blue")
+        canvas.pack()
 
 
 class Case:  # peut etre pas necessaire
