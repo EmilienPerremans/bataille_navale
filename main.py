@@ -1,5 +1,6 @@
 import cmd
-
+from tkinter import *
+import random
 
 class InvalidCoordError(Exception):
     pass
@@ -8,13 +9,47 @@ class InvalidCoordError(Exception):
 class Interface(cmd.Cmd):
     """Simple command processor example."""
     intro = 'Bienvenue dans votre bataille navale, tapez help "commande" ou ? "commande" pour obtenir de l\'aide\n'
-    prompt = "jeu"
+    prompt = "Choisissez votre mode de jeu (Solo ou Duel)"
 
-    def __init__(self, joueurs):
+
+
+
+    def __init__(self):
         super().__init__()
-        self.joueurs = joueurs
-        self.joueur_actuel = joueurs[0]
+        self.joueurs = []
+        self.joueur_actuel = None
+        self.mode = "menu"
+
+    def choixMode(self):
+        j1 = ""
+        while j1 == "":
+            j1 = input('entrez le nom du joueur 1: ')
+            if j1 == "":
+                print("veuillez entrer quelque chose")
+        self.joueurs.append(Joueur(j1, 1))
+
+        choixValide = False
+        while choixValide == False:
+            choix = input("Choisissez votre mode de jeu (solo ou duel)")
+            if choix == "solo":
+                self.joueurs.append(Ordinateur("ordi", 2))
+                choixValide = True
+            elif choix == "duel":
+                j2 = ""
+                while j2 == "":
+                    j2 = input('entrez le nom du joueur 1: ')
+                    if j2 == "":
+                        print("veuillez entrer quelque chose")
+                self.joueurs.append(Joueur(j2, 1))
+                choixValide = True
+            else:
+                print("veuillez choisir parmis les modes proposés")
+
+        self.joueur_actuel = self.joueurs[0]
+        self.mode = "preparations"
         self.preparations()
+
+
 
     def default(self, line: str):
         print("commande non reconnue")
@@ -26,11 +61,16 @@ class Interface(cmd.Cmd):
 
     def gameOver(self, perdant):
         print("Fin de partie, %s a perdu" % perdant.nom)
+        self.do_EOF()
 
     def changeJoueur(self):
         if self.joueurs[1].nom == "ordi":
-            self.joueurs[1].tire()
             print("l'ordi à tiré")
+            try:
+                self.joueurs[1].tire()
+            except:
+                print("l'ordi doit réessayer")
+
         else:
             if self.joueur_actuel == self.joueurs[0]:
                 self.joueur_actuel = self.joueurs[1]
@@ -44,16 +84,22 @@ class Interface(cmd.Cmd):
             s = self.joueur_actuel.nom + "\nplacez vos bateau: "
             self.prompt = s
             if (self.joueurs[0].nbr_bateau == 0):
-                self.joueurs[1].place()
                 print("L'ordi place ses bateaux...")
+                while len(self.joueurs[1].bateauxDispo) > 0:
+                    try:
+                        self.joueurs[1].place()
+                    except:
+                        print("L'ordi doit réessayer")
                 print("préparations terminée, joueur1 vous commencez")
                 self.prompt = "j1 a vous: "
+                self.mode = "jeu"
         else:
             s = self.joueur_actuel.nom + "\nplacez vos bateau: "
             self.prompt = s
             if (self.joueurs[1].nbr_bateau == 0):
                 print("préparations terminée, joueur1 vous commencez")
                 self.prompt = "j1 a vous: "
+                self.mode = "jeu"
 
     def do_affiche(self, line):
         g.affiche()
@@ -62,6 +108,9 @@ class Interface(cmd.Cmd):
         print("affiche la grille")
 
     def do_place(self, line):
+        if self.mode == "jeu":
+            print("vous ne pouvez plus ajouter de bateaux")
+            return
         l = line.split(" ")
         if len(l) != 2:
             print("veuillez entrer deux coordonnées")
@@ -73,14 +122,16 @@ class Interface(cmd.Cmd):
             print("erreur ligne 55")
             print("details de l'erreur:", message)
         else:
-            self.joueur_actuel.nbr_bateau -= 1  # verifier que le placement est bon
-            if self.joueur_actuel.nbr_bateau == 0:
+            if len(self.joueurs[1].bateauxDispo) == 0:
                 if self.joueurs[1].nom != "ordi":
                     self.changeJoueur()
                 self.preparations()
 
+    def help_place(self):
+        print("place un bateau (place A B)")
+
     def do_tire(self, line):
-        if self.joueur_actuel.nbr_bateau != 0:
+        if self.mode == "preparations":
             print("il vous reste des bateaux à placer")
             return
         try:
@@ -101,10 +152,11 @@ class Interface(cmd.Cmd):
 
 class Joueur():
     """un joueur qui peut placer des bateau et tirer"""
-
+    taillesBateaux = {"porte-avions":5, "croiseur" : 3, "sous-marin":1}
     def __init__(self, nom, numero):
         self.nom = nom
         self.nbr_bateau = 3
+        self.bateauxDispo = ["porte-avions", "croiseur", "sous-marin"]
         self.liste_bateau = []
         self.numero = numero
 
@@ -112,6 +164,8 @@ class Joueur():
         for o in self.liste_bateau:
             print(o.liste_parties)
         self.liste_bateau.append(Bateau(coordA, coordB, self))
+        print(self.liste_bateau[len(self.liste_bateau)-1].type)
+        self.bateauxDispo.remove(self.liste_bateau[len(self.liste_bateau)-1].type)
 
     def tire(self, case):
         if isinstance(g.cases[case][((self.numero) % 2)],
@@ -129,24 +183,38 @@ class Joueur():
 
 class Ordinateur(Joueur):
     """Joueur entièrement geré par l'ordinateur"""
-
+    taillesBateaux = {"porte-avions": 5, "croiseur": 3, "sous-marin": 1}
     def __init__(self, nom, numero):
         super().__init__(nom, numero)
 
     def place(self):
-        coordA = "A1"  # aléatoiriser
-        coordB = "A2"
+        c1 = chr(65 + random.randint(0, g.hauteur))
+        c2 = str(random.randint(0, g.longueur))
+        indice = random.randint(0, len(self.bateauxDispo)-1)
+        longueur = self.taillesBateaux[self.bateauxDispo[indice]] - 1
+        coordA = c1 + c2  # aléatoiriser
+
+        if random.choice([True, False]):
+            coordB = c1 + str(int(c2)+longueur)
+        else:
+            coordB = chr(65 + ord(c1) + longueur) + c2
+
         for o in self.liste_bateau:
             print(o.liste_parties)
         self.liste_bateau.append(Bateau(coordA, coordB, self))
-
+        self.bateauxDispo.pop(indice)
     def tire(self):
-        case = "A1"  # randomiser
-        if isinstance(g.cases[case][((self.numero) % 2)],
+        c1 = chr(65 + random.randint(0, g.hauteur))
+        c2 = str(random.randint(0, g.longueur))
+        case = c1 + c2  # aléatoiriser
+        if isinstance(g.cases[case][(self.numero % 2)],
                       PartieBateau):  # a adapter quand il y aura plus que 2 joueurs
             if g.cases[case][(self.numero % 2)].bateau.proprietaire != self:
-                g.cases[case][(self.numero % 2)].etat = "touché"
-                print("touché!")
+                if g.cases[case][(self.numero % 2)].etat == "indemne":
+                    g.cases[case][(self.numero % 2)].etat = "touché"
+                    print("touché!")
+                else:
+                    raise InvalidCoordError("cette partie de bateau à déjà été touchée")
             else:
                 print("c'est ton bateau ça, gamin")
             g.cases[case][(self.numero % 2)].bateau.check()
@@ -172,6 +240,11 @@ class Grille:
                     self.cases[cle].append(Eau(cle))
 
     def affiche(self):
+        for e, i in enumerate(self.cases.items()):
+            if e % 10 == 0:
+                print("\n")
+            print(i, end="")
+
         for e, i in enumerate(self.cases.items()):
             separrateur = "  "
             affichA = []
@@ -267,7 +340,7 @@ class PartieBateau(Case):
 
 class Bateau():
     """un bateau, composé de plusieurs parties qui se positionne dans la grille et vérifie son état apres chaque coup"""
-
+    bateauxTailles = {5: "porte-avions",3: "croiseur",1 : "sous-marin"}
     def __init__(self, coordA, coordB, proprietaire):
         # self.longueur = longueur
         if coordA not in g.cases.keys():
@@ -280,9 +353,11 @@ class Bateau():
         self.proprietaire = proprietaire
         self.liste_parties = []
         self.etat = "indemne"
+        self.type = ""
         self.placement2()
 
     def placement2(self):
+
         if self.coordA[0] == self.coordB[0]:  # bateau horizontal
             for i in range(abs(int(self.coordA[1]) - int(
                     self.coordB[1])) + 1):  # boucle autand de fois qu'il n'y a de parties de bateau
@@ -315,17 +390,25 @@ class Bateau():
                     self.liste_parties = []
                     raise InvalidCoordError("Le bateau est à coté d'un autre")
             print(self.liste_parties)
+            if len(self.liste_parties) in list(self.bateauxTailles.keys()):
+                if (self.bateauxTailles[len(self.liste_parties)]) in self.proprietaire.bateauxDispo:
+                    self.type = self.bateauxTailles[len(self.liste_parties)]
+                else:
+                    raise InvalidCoordError("Vous n'avez plus de bateaux de cette taille")
+            else:
+                self.liste_parties = []
+                raise InvalidCoordError("Vous n'avez pas de bateaux de cette taille")
 
             for c in self.liste_parties:  # la liste des parties du bateau est complete, mais il n'y a pas encore d'instances dans la grille
                 g.cases[c][((self.proprietaire.numero + 1) % 2)] = PartieBateau(c, self)
 
-        elif self.coordA[1] == self.coordB[1]:  # bateau horizontal
+        elif self.coordA[1] == self.coordB[1]:  # bateau vertical
             for i in range(abs(ord(self.coordA[0]) - ord(self.coordB[0])) + 1):
                 if (ord(self.coordA[0]) - ord(self.coordB[0])) < 0:
                     coord = chr(ord(self.coordA[0]) + i) + self.coordA[1]
                 else:
                     coord = chr(ord(self.coordA[0]) - i) + self.coordA[1]
-                if g.cases[coord][((self.proprietaire.numero + 1) % 2)].type != "Eau":
+                if g.cases[coord][((self.proprietaire.numero + 1) % 2)].type != "eau":
                     self.liste_parties = []
                     raise InvalidCoordError("vous ne pouvez pas placer un bateau sur un autre bateau")
                 self.liste_parties.append(coord)
@@ -348,11 +431,20 @@ class Bateau():
                     self.liste_parties = []
                     raise InvalidCoordError("Le bateau est à coté d'un autre")
             print(self.liste_parties)
+            if len(self.liste_parties) in list(self.bateauxTailles.keys()):
+                if (self.bateauxTailles[len(self.liste_parties)]) in self.proprietaire.bateauxDispo:
+                    self.type = self.bateauxTailles[len(self.liste_parties)]
+                else:
+                    raise InvalidCoordError("Vous n'avez plus de bateaux de cette taille")
+            else:
+                self.liste_parties = []
+                raise InvalidCoordError("Vous n'avez pas de bateaux de cette taille")
 
             for c in self.liste_parties:
                 g.cases[c][((self.proprietaire.numero + 1) % 2)] = PartieBateau(c, self)
         else:
             raise InvalidCoordError("veuillez entrer des coordonnées valides")
+
 
     """
     def placement(self):
@@ -420,7 +512,7 @@ class Bateau():
 if __name__ == '__main__':
     import argparse
 
-    parser = argparse.ArgumentParser()
+    """parser = argparse.ArgumentParser()
     parser.add_argument("nom", help="nom des joueurs", nargs="+")
     # parser.add_argument("mode", help="message", choices=["normal", "2.0"])
     l = parser.parse_args()
@@ -434,6 +526,12 @@ if __name__ == '__main__':
         inter = Interface([j1, en])
     g.affiche()
     print("\n")
+    """
 
+    g = Grille(2)
+
+
+    inter = Interface()
+    inter.choixMode()
     inter.cmdloop()
 # See PyCharm help at https://www.jetbrains.com/help/pycharm/
